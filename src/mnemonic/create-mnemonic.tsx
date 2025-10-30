@@ -3,9 +3,7 @@
 
 // const CreateMnemonic =  () => {
 
-    
 //       const [mnemonic, setMnemonic] = useState("");
-    
 
 //     const create =  generateMnemonic();
 //     setMnemonic(create);
