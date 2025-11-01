@@ -76,6 +76,10 @@ const App = () => {
               <p className="text-green-400 break-all text-sm">
                 {keys.publicKey}
               </p>
+
+              <p>
+                hel
+              </p>
               <h3 className="text-white font-semibold mt-4 mb-2">
                 Private Key:
               </h3>
