@@ -1,28 +1,36 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { generateMnemonic, mnemonicToSeed } from "bip39";
 import { HeaderComponent } from "./components/header";
-import { Copy, CopyCheck } from "lucide-react";
+import { Copy, CopyCheck, Search } from "lucide-react";
 import { derivePath } from "ed25519-hd-key";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
+import { getEthBalance } from "./Balance/ethBalance";
 
 const App = () => {
   const [mnemonic, setMnemonic] = useState("");
   const [copy, setCopy] = useState(false);
   const [keys, setKeys] = useState({ publicKey: "", privateKey: "" });
+  const [address, setAddress] = useState("");
+  const [balance, setBalance] = useState("");
 
   const handleSubmit = async () => {
     const phrase = generateMnemonic();
     setMnemonic(phrase);
-
     const path = "m/44'/501'/0'/0'";
     const seed = await mnemonicToSeed(phrase);
     const derivedSeed = derivePath(path, seed.toString("hex")).key;
     const keypair = nacl.sign.keyPair.fromSeed(derivedSeed);
-
     const publicKey = bs58.encode(keypair.publicKey);
     const privateKey = bs58.encode(keypair.secretKey.slice(0, 32));
     setKeys({ publicKey, privateKey });
+  };
+
+  const handleSearch = async () => {
+    if (!address) return alert("Enter a valid wallet address");
+    const eth = await getEthBalance(address);
+    if (eth === null) setBalance("Error fetching balance");
+    else setBalance(`${eth} ETH`);
   };
 
   return (
@@ -31,62 +39,78 @@ const App = () => {
         <HeaderComponent />
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center w-full px-4 pt-20">
-        <div className="w-full flex items-center gap-4 max-w-sm fixed top-48 left-1/2 -translate-x-1/2 z-20">
-          <button
-            onClick={handleSubmit}
-            className="w-full bg-blue-500 py-3 px-4 rounded-md font-semibold text-black hover:bg-blue-400 transition"
-          >
-            Generate Key Pairs
-          </button>
-          <button
-            onClick={() => {
-              if (mnemonic) {
-                navigator.clipboard.writeText(mnemonic);
-                setCopy(true);
-                setTimeout(() => setCopy(false), 2000);
-              }
-            }}
-            className="hover:cursor-pointer"
-          >
-            {copy ? (
-              <CopyCheck className="text-white" />
-            ) : (
-              <Copy className="text-white hover:text-neutral-300" />
+      <div className="flex-1 flex flex-col items-center justify-start w-full px-4 pt-32">
+        <div className="w-full max-w-5xl flex justify-between items-center mb-10 px-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSubmit}
+              className="bg-blue-500 py-3 px-4 rounded-md font-semibold text-black hover:bg-blue-400 transition"
+            >
+              Generate Key Pairs
+            </button>
+            {mnemonic && (
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(mnemonic);
+                  setCopy(true);
+                  setTimeout(() => setCopy(false), 2000);
+                }}
+                className="hover:cursor-pointer"
+              >
+                {copy ? (
+                  <CopyCheck className="text-white" />
+                ) : (
+                  <Copy className="text-white hover:text-neutral-300" />
+                )}
+              </button>
             )}
-          </button>
+          </div>
+
+          <div className="flex items-center gap-2 bg-gray-900 p-2 rounded-lg border border-gray-700">
+            <input
+              type="text"
+              placeholder="Enter wallet address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="bg-gray-800 text-white px-3 py-2 rounded outline-none border border-gray-700 focus:border-blue-500"
+            />
+            <button
+              onClick={handleSearch}
+              className="bg-blue-500 hover:bg-blue-400 text-black px-4 py-2 rounded flex items-center gap-2 font-semibold transition"
+            >
+              <Search size={18} /> Search
+            </button>
+          </div>
         </div>
 
         {mnemonic && (
-          <div className="w-full max-w-2xl mt-32">
-            <div className="grid grid-cols-4 gap-3">
-              {mnemonic.split(" ").map((word, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-center"
-                >
-                  <div className="text-gray-400 text-xs mb-1">{index + 1}</div>
-                  <div className="text-white font-medium">{word}</div>
-                </div>
-              ))}
+          <div className="w-full max-w-5xl px-4">
+            <div className="mb-8">
+              <div className="grid grid-cols-4 gap-3">
+                {mnemonic.split(" ").map((word, index) => (
+                  <div
+                    key={index}
+                    className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-center"
+                  >
+                    <div className="text-gray-400 text-xs mb-1">{index + 1}</div>
+                    <div className="text-white font-medium">{word}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="mt-8 bg-gray-900 border border-gray-700 rounded-lg p-4">
+            <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
               <h3 className="text-white font-semibold mb-2">Public Key:</h3>
-              <p className="text-green-400 break-all text-sm">
-                {keys.publicKey}
-              </p>
-
-              <p>
-                hel
-              </p>
-              <h3 className="text-white font-semibold mt-4 mb-2">
-                Private Key:
-              </h3>
-              <p className="text-red-400 break-all text-sm">
-                {keys.privateKey}
-              </p>
+              <p className="text-green-400 break-all text-sm">{keys.publicKey}</p>
+              <h3 className="text-white font-semibold mt-4 mb-2">Private Key:</h3>
+              <p className="text-red-400 break-all text-sm">{keys.privateKey}</p>
             </div>
+
+            {balance && (
+              <p className="text-green-400 mt-6 text-center text-sm">
+                Balance: {balance}
+              </p>
+            )}
           </div>
         )}
       </div>
